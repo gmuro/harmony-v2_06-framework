@@ -652,8 +652,8 @@ laResult laRadialMenuWidget_SetProminentIndex(laRadialMenuWidget* mn, uint32_t i
     if(item == NULL)
         return LA_FALSE;
     
-    mn->targetAngleDiff = PROMINENT_ANGLE - item->t;
-    mn->state =  LA_RADIAL_MENU_HANDLE_USER_MOVE_REQUEST;
+    mn->prominentIndex = index;
+    mn->state =  LA_RADIAL_MENU_RESET_TO_INPUT_POS;
     
     invalidateContents(mn);
     
