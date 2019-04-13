@@ -231,8 +231,8 @@ static int32_t getScrollBarRowLocation(laListWidget* lst, int idx)
         height += rect.height;
     }
     
-    if(y == 0)
-        y = height;
+ //   if(y == 0)
+   //     y = height;
     
     if(height == 0)
         return 0;
