@@ -101,7 +101,11 @@ laResult laEvent_AddEvent_RTOS(laEvent* evt)
     if(context == NULL || evt == NULL)
         return LA_FAILURE;
 
+    OSAL_MUTEX_Lock(&context->event.eventLock, OSAL_WAIT_FOREVER);
+    
     laList_PushBack(&context->event.events, evt);
+        
+    OSAL_MUTEX_Unlock(&context->event.eventLock);
     
     //Increment the event semaphore
     OSAL_SEM_Post(&context->event.eventCountSem);
