@@ -517,7 +517,7 @@ laWidgetUpdateState _laRadialMenuWidget_Update(laRadialMenuWidget* mn)
         _laRadialMenuWidget_UpdateEllipse(mn);
     }
     
-    return LA_WIDGET_UPDATE_STATE_PENDING;
+    return LA_WIDGET_UPDATE_STATE_DONE;
 }
 
 laRadialMenuWidget* laRadialMenuWidget_New()
