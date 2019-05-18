@@ -879,13 +879,16 @@ laResult laListWidget_SetItemText(laListWidget* lst,
        
     item = lst->items.values[idx];
     
-    laString_Copy(&item->string, &str);
+    if (laString_Compare(&item->string, &str) != 0)
+    {
+      laString_Copy(&item->string, &str);
     
-    _laListWidget_recalculateRowRect(lst, idx);
+      _laListWidget_recalculateRowRect(lst, idx);
 
-    invalidateListArea(lst);
-    
-    recalculateScrollBarValues(lst);
+      invalidateListArea(lst);
+
+      recalculateScrollBarValues(lst);
+    }
     
     return LA_SUCCESS;
 }
