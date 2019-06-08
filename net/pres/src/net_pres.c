@@ -524,13 +524,12 @@ void NET_PRES_SocketClose(NET_PRES_SKT_HANDLE_T handle)
         pSkt->lastError = NET_PRES_SKT_OP_NOT_SUPPORTED;
         return;
     }
-    //(*fpc)(pSkt->transHandle);
+    (*fpc)(pSkt->transHandle);
     if (OSAL_MUTEX_Lock(&sNetPresData.presMutex, OSAL_WAIT_FOREVER) != OSAL_RESULT_TRUE)
     {
         pSkt->lastError = NET_PRES_SKT_UNKNOWN_ERROR;
         return;
     }
-    (*fpc)(pSkt->transHandle);
     memset(pSkt, 0, sizeof(NET_PRES_SocketData));
     if (OSAL_MUTEX_Unlock(&sNetPresData.presMutex) != OSAL_RESULT_TRUE)
     {
