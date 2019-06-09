@@ -48,10 +48,10 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
 // Section: File includes
 // *****************************************************************************
 // *****************************************************************************
+#include "system/int/sys_int.h"
 #include "system/common/sys_common.h"
 #include "driver/driver_common.h"
 #include "system/common/sys_module.h"
-#include "system/int/sys_int.h"
 #include "osal/osal.h"
 
 // DOM-IGNORE-BEGIN

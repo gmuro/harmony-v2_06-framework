@@ -47,8 +47,8 @@ SUBSTITUTE  GOODS,  TECHNOLOGY,  SERVICES,  OR  ANY  CLAIMS  BY  THIRD   PARTIES
 // *****************************************************************************
 // *****************************************************************************
 
-#include "usb/usb_host_msd.h"
 #include "usb/src/usb_host_msd_local.h"
+#include "usb/usb_host_msd.h"
 #include "usb/usb_host_client_driver.h"
 #include "system/debug/sys_debug.h"
 #include "usb/usb_host_scsi.h"

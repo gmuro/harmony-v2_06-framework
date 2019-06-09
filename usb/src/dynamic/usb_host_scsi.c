@@ -42,12 +42,12 @@ SUBSTITUTE  GOODS,  TECHNOLOGY,  SERVICES,  OR  ANY  CLAIMS  BY  THIRD   PARTIES
 *******************************************************************************/
 //DOM-IGNORE-END
 
-#include "usb/usb_host_msd.h"
+#include "usb/src/usb_host_scsi_local.h"
 #include "usb/usb_host_scsi.h"
 #include "usb/scsi.h"
-#include "usb/src/usb_host_scsi_local.h"
 #include "system/fs/sys_fs_media_manager.h"
 #include "system/debug/sys_debug.h"
+#include "usb/usb_host_msd.h"
 
 /******************************************************
  * USB HOST MSD SCSI Instance object. One for each LUN
