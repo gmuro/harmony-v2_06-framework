@@ -51,10 +51,10 @@ SUBSTITUTE  GOODS,  TECHNOLOGY,  SERVICES,  OR  ANY  CLAIMS  BY  THIRD   PARTIES
 // *****************************************************************************
 // *****************************************************************************
 
+#include "system_config.h"
 #include "usb/usb_host.h"
 #include "usb/usb_hid.h"
 #include "usb/usb_host_client_driver.h"
-#include "system_config.h"
 
 
 // DOM-IGNORE-BEGIN
