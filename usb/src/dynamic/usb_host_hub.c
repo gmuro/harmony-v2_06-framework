@@ -47,6 +47,7 @@ SUBSTITUTE  GOODS,  TECHNOLOGY,  SERVICES,  OR  ANY  CLAIMS  BY  THIRD   PARTIES
 // *****************************************************************************
 // *****************************************************************************
 
+#include "system_config.h"
 #include "usb/usb_host_client_driver.h"
 #include "usb/usb_host.h"
 #include "usb/usb_hub.h"
