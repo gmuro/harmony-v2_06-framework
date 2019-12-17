@@ -4,6 +4,45 @@
 
 #define STD_RESIZE_AMT   5
 
+static int32_t mustUnlock = 0;
+
+static void lock(void)
+{
+   bool ret;
+   laContext *pContext = laContext_GetActive();
+   TaskHandle_t holder;
+   
+   ret = OSAL_MUTEX_Lock(&pContext->event.eventLock, 0);
+   
+   if (ret || mustUnlock)
+   {
+      mustUnlock++;
+   }
+   else
+   {
+      holder = xSemaphoreGetMutexHolder(pContext->event.eventLock);
+      
+      if (xTaskGetCurrentTaskHandle() != holder)
+      {
+         OSAL_MUTEX_Lock(&pContext->event.eventLock, OSAL_WAIT_FOREVER);
+         mustUnlock++;
+      }
+   }   
+}
+
+static void unlock(void)
+{
+   if (mustUnlock)
+   {
+      mustUnlock--;
+      if (mustUnlock == 0)
+      {
+         laContext *pContext = laContext_GetActive();
+         OSAL_MUTEX_Unlock(&pContext->event.eventLock);
+      }
+   }
+}
+
 static void _shuffleRight(laArray* arr, uint32_t idx)
 {
     uint32_t i;
@@ -52,6 +91,7 @@ laResult laArray_Resize(laArray* arr, uint32_t sz)
     if(laContext_GetActive() == NULL || arr == NULL || arr->capacity == sz)
         return LA_FAILURE;
 
+    lock();
     arr->values = laContext_GetActive()->memIntf.heap.realloc(arr->values, 
                                                               sizeof(void*) * sz);
 
@@ -60,6 +100,7 @@ laResult laArray_Resize(laArray* arr, uint32_t sz)
         arr->size = 0;
         arr->capacity = 0;
 
+        unlock();
         return LA_FAILURE;
     }
 
@@ -68,6 +109,7 @@ laResult laArray_Resize(laArray* arr, uint32_t sz)
     if(arr->size >= arr->capacity)
         arr->size = arr->capacity;
 
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -83,8 +125,8 @@ laResult laArray_PushFront(laArray* arr, void* val)
     {
         if(laArray_Resize(arr, arr->capacity + STD_RESIZE_AMT) == LA_FAILURE)
             return LA_FAILURE;
-    }
-
+        }
+           
     _shuffleRight(arr, 0);
 
     arr->values[0] = val;
@@ -112,8 +154,8 @@ laResult laArray_PushBack(laArray* arr, void* val)
     if(arr->size == arr->capacity)
     {
         if(laArray_Resize(arr, arr->capacity + STD_RESIZE_AMT) == LA_FAILURE)
-            return LA_FAILURE;
-    }
+           return LA_FAILURE;
+        }
 
     arr->values[arr->size] = val;
     arr->size++;
