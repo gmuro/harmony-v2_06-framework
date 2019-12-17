@@ -3,6 +3,45 @@
 #include "gfx/libaria/inc/libaria_context.h"
 #include "gfx/utils/gfx_utils.h"
 
+static int32_t mustUnlock = 0;
+
+static void lock(void)
+{
+   bool ret;
+   laContext *pContext = laContext_GetActive();
+   TaskHandle_t holder;
+   
+   ret = OSAL_MUTEX_Lock(&pContext->event.eventLock, 0);
+   
+   if (ret || mustUnlock)
+   {
+      mustUnlock++;
+   }
+   else
+   {
+      holder = xSemaphoreGetMutexHolder(pContext->event.eventLock);
+      
+      if (xTaskGetCurrentTaskHandle() != holder)
+      {
+         OSAL_MUTEX_Lock(&pContext->event.eventLock, OSAL_WAIT_FOREVER);
+         mustUnlock++;
+      }
+   }   
+}
+
+static void unlock(void)
+{
+   if (mustUnlock)
+   {
+      mustUnlock--;
+      if (mustUnlock == 0)
+      {
+         laContext *pContext = laContext_GetActive();
+         OSAL_MUTEX_Unlock(&pContext->event.eventLock);
+      }
+   }
+}
+
 static uint32_t la_strlen(const GFXU_CHAR* str)
 {
     int length = 0;
@@ -208,17 +247,20 @@ laResult laString_Set(laString* str, const GFXU_CHAR* buffer)
     if(laContext_GetActive() == NULL || buffer == NULL)
         return LA_FAILURE;
     
+    lock();
+    
     len = la_strlen(buffer);
     
     // need to adjust destination capacity?
     if(str->capacity < len + 1)
     {
         str->data = laContext_GetActive()->memIntf.heap.realloc(str->data, (len + 6) * sizeof(GFXU_CHAR));
-
+        
         // failed to reallocate data?
         if(str->data == NULL)
         {
             laString_Initialize(str);
+            unlock();
             return LA_FAILURE;
         }
         
@@ -229,6 +271,7 @@ laResult laString_Set(laString* str, const GFXU_CHAR* buffer)
 
     la_strcpy(str->data, buffer);
     
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -237,6 +280,7 @@ void laString_Destroy(laString* str)
     if(laContext_GetActive() == NULL || str == NULL)
         return;
 
+    lock();
     if(str->data != NULL)
         laContext_GetActive()->memIntf.heap.free(str->data);
 
@@ -245,6 +289,7 @@ void laString_Destroy(laString* str)
     str->length = 0;
     str->font = NULL;
     str->table_index = LA_STRING_NULLIDX;
+    unlock();
 }
 
 laResult laString_Copy(laString* dst, const laString* src)
@@ -255,6 +300,7 @@ laResult laString_Copy(laString* dst, const laString* src)
     if(src == NULL || dst == NULL)
         return LA_FAILURE;
     
+    lock();
     dst->length = src->length;
     dst->capacity = 0;
     dst->font = src->font;
@@ -266,6 +312,7 @@ laResult laString_Copy(laString* dst, const laString* src)
         laContext_GetActive()->memIntf.heap.free(dst->data);
         dst->data = NULL;
 
+        unlock();
         return LA_SUCCESS;
     }
     
@@ -273,17 +320,18 @@ laResult laString_Copy(laString* dst, const laString* src)
     {
         dst->capacity = dst->length + 6;
         dst->data = laContext_GetActive()->memIntf.heap.realloc(dst->data, dst->capacity * sizeof(GFXU_CHAR));
-
+                
         if(dst->data == NULL)
         {
             laString_Initialize(dst);
-            
+            unlock();
             return LA_FAILURE;
         }
-
+    
         la_strcpy(dst->data, src->data);
     }
     
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -370,13 +418,19 @@ laResult laString_SetCapacity(laString* str, uint32_t cap)
 {
     if(laContext_GetActive() == NULL || str == NULL || str->capacity == cap)
         return LA_FAILURE;
-        
+     
+    lock();
     if(str->capacity == 0)
     {
         str->data = laContext_GetActive()->memIntf.heap.malloc(cap * sizeof(GFXU_CHAR));
         
         if(str->data == NULL)
-            return LA_FAILURE;
+        {
+           str->capacity = 0;
+           str->length = 0;
+           unlock();
+           return LA_FAILURE;
+        }
             
         str->capacity = cap;
         str->length = 0;
@@ -390,7 +444,7 @@ laResult laString_SetCapacity(laString* str, uint32_t cap)
         {
             str->capacity = 0;
             str->length = 0;
-            
+            unlock();
             return LA_FAILURE;
         }
             
@@ -399,12 +453,12 @@ laResult laString_SetCapacity(laString* str, uint32_t cap)
     else if(cap < str->capacity)
     {
         str->data = laContext_GetActive()->memIntf.heap.realloc(str->data, cap * sizeof(GFXU_CHAR));
-        
+                
         if(str->data == NULL)
         {
             str->capacity = 0;
             str->length = 0;
-            
+            unlock();
             return LA_FAILURE;
         }
         
@@ -413,6 +467,7 @@ laResult laString_SetCapacity(laString* str, uint32_t cap)
         str->data[str->length] = '\0';
     }
     
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -473,6 +528,8 @@ laResult laString_Append(laString* dst, const laString* src)
        src->data == NULL)
         return LA_SUCCESS;
 
+    lock();
+    
     if(dst->data == NULL)
     {
         laString_ExtractFromTable(dst, src->table_index);
@@ -490,9 +547,14 @@ laResult laString_Append(laString* dst, const laString* src)
             dst->capacity = dst->length + 6;
         
             dst->data = laContext_GetActive()->memIntf.heap.realloc(dst->data, dst->capacity * sizeof(GFXU_CHAR));
-                 
+                        
             if(dst->data == NULL)
-                return LA_FAILURE;
+            {
+               dst->capacity = 0;
+               dst->length = 0;
+               unlock();
+               return LA_FAILURE;
+            }
                               
             GFXU_ExtractString(laContext_GetActive()->stringTable,
                                src->table_index,
@@ -511,12 +573,18 @@ laResult laString_Append(laString* dst, const laString* src)
             dst->data = laContext_GetActive()->memIntf.heap.realloc(dst->data, dst->capacity * sizeof(GFXU_CHAR));
             
             if(dst->data == NULL)
-                return LA_FAILURE;
+            {
+               dst->capacity = 0;
+               dst->length = 0;
+               unlock();
+               return LA_FAILURE;
+            }
             
             dst->data = la_strcat(dst->data, src->data);
         }
     }
     
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -551,6 +619,7 @@ laResult laString_Insert(laString* dst, const laString* src, uint32_t idx)
     if(dst->data == NULL)
         return LA_FAILURE;
     
+    lock();
     // copy data
     for(i = dst->length - 1; i >= idx; i--)
         dst->data[i + rightLength] = dst->data[i];
@@ -562,6 +631,7 @@ laResult laString_Insert(laString* dst, const laString* src, uint32_t idx)
     
     dst->data[dst->length] = 0;
     
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -575,11 +645,13 @@ uint32_t laString_Remove(laString* str, uint32_t idx, uint32_t count)
     if(count > str->length - idx)
         count = str->length - idx;
         
+    lock();
     for(i = idx; i < str->length; i++)
         str->data[i] = str->data[i + count];
     
     str->length -= count;
     
+    unlock();
     return count;
 }
 
@@ -588,6 +660,7 @@ void laString_Clear(laString* str)
     if(str == NULL)
         return;
     
+    lock();
     str->table_index = LA_STRING_NULLIDX;
     
     if(str->capacity > 0)
@@ -595,6 +668,8 @@ void laString_Clear(laString* str)
         str->length = 0;
         str->data[0] = '\0';
     }
+    
+    unlock();
 }
 
 uint32_t laString_ToCharBuffer(const laString* str,
