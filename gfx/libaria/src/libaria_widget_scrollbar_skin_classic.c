@@ -100,6 +100,10 @@ void _laScrollBar_GetHandleRect(laScrollBarWidget* bar, GFX_Rect* rect)
         extent = extent;
     
     sizePercent = GFX_PercentWholeRounded(extent, bar->max);
+    
+    if (sizePercent < 5)
+       sizePercent = 5;
+    
     locPercent = GFX_PercentWholeRounded(bar->value, bar->max);
     
     _laScrollBar_GetScrollAreaRect(bar, &scrollRect);
