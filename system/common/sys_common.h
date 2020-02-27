@@ -64,6 +64,8 @@ SUBSTITUTE GOODS, TECHNOLOGY, SERVICES, OR ANY CLAIMS BY THIRD PARTIES
     #include <sys/attribs.h>
 #endif
 
+#include "bsp.h"
+
 #ifdef __cplusplus
     extern "C" {
 #endif
