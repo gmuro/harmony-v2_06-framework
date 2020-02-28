@@ -130,12 +130,16 @@ void laString_Delete(laString** str)
     if(laContext_GetActive() == NULL || str == NULL || *str == NULL)
         return;
         
+    lock();
+    
     if((*str)->data != NULL)
         laContext_GetActive()->memIntf.heap.free((*str)->data);
 
     laContext_GetActive()->memIntf.heap.free(*str);
     
     *str = NULL;
+    
+    unlock();
 }
 
 void laString_Initialize(laString* str)
@@ -218,22 +222,31 @@ laResult laString_Allocate(laString* str, uint32_t length)
     if(laContext_GetActive() == NULL || str == NULL || length == 0)
         return LA_FAILURE;
 
+    lock();
+    
     if(str->data != NULL)
         laContext_GetActive()->memIntf.heap.free(str->data);
 
     laString_Initialize(str);
 
     if(length == 0)
-        return LA_SUCCESS;
+    {
+       unlock();
+       return LA_SUCCESS;
+    }
     
     str->data = laContext_GetActive()->memIntf.heap.calloc(1, (length + 1) * sizeof(GFXU_CHAR));
     
     if(str->data == NULL)
-        return LA_FAILURE;
+    {
+       unlock();
+       return LA_FAILURE;
+    }
     
     str->capacity = length + 1;
     str->length = length;
     
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -249,6 +262,8 @@ laResult laString_Set(laString* str, const GFXU_CHAR* buffer)
     
     len = la_strlen(buffer);
     
+    lock();
+    
     // need to adjust destination capacity?
     if(str->capacity < len + 1)
     {
@@ -258,6 +273,7 @@ laResult laString_Set(laString* str, const GFXU_CHAR* buffer)
         if(str->data == NULL)
         {
             laString_Initialize(str);
+            unlock();
             return LA_FAILURE;
         }
         
@@ -267,6 +283,8 @@ laResult laString_Set(laString* str, const GFXU_CHAR* buffer)
     str->length = len;
 
     la_strcpy(str->data, buffer);
+    
+    unlock();
     
     return LA_SUCCESS;
 }
@@ -343,6 +361,8 @@ void laString_ExtractFromTable(laString* dst, uint32_t table_index)
     if(table_index == LA_STRING_NULLIDX)
         return;
 
+    lock();
+    
     if(dst->data != NULL)
         laString_Destroy(dst);
 
@@ -364,6 +384,8 @@ void laString_ExtractFromTable(laString* dst, uint32_t table_index)
     dst->font = GFXU_StringFontIndexLookup(laContext_GetActive()->stringTable,
                                            table_index,
                                            laContext_GetActive()->languageID);
+    
+    unlock();
 }
 
 GFXU_CHAR laString_CharAt(const laString* str, uint32_t idx)
@@ -402,8 +424,10 @@ void laString_ReduceLength(laString* str, uint32_t length)
     if(str == NULL || length >= str->length || str->data == NULL)
         return;
         
+    lock();
     str->length = length;
     str->data[str->length] = '\0';
+    unlock();
 }
 
 uint32_t laString_Capacity(const laString* str)
@@ -419,12 +443,16 @@ laResult laString_SetCapacity(laString* str, uint32_t cap)
     if(laContext_GetActive() == NULL || str == NULL || str->capacity == cap)
         return LA_FAILURE;
         
+    lock();
     if(str->capacity == 0)
     {
         str->data = laContext_GetActive()->memIntf.heap.malloc(cap * sizeof(GFXU_CHAR));
         
         if(str->data == NULL)
-            return LA_FAILURE;
+        {
+           unlock();
+           return LA_FAILURE;
+        }
             
         str->capacity = cap;
         str->length = 0;
@@ -439,6 +467,7 @@ laResult laString_SetCapacity(laString* str, uint32_t cap)
             str->capacity = 0;
             str->length = 0;
             
+            unlock();
             return LA_FAILURE;
         }
             
@@ -453,6 +482,7 @@ laResult laString_SetCapacity(laString* str, uint32_t cap)
             str->capacity = 0;
             str->length = 0;
             
+            unlock();
             return LA_FAILURE;
         }
         
@@ -461,6 +491,7 @@ laResult laString_SetCapacity(laString* str, uint32_t cap)
         str->data[str->length] = '\0';
     }
     
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -521,6 +552,8 @@ laResult laString_Append(laString* dst, const laString* src)
        src->data == NULL)
         return LA_SUCCESS;
 
+    lock();
+    
     if(dst->data == NULL)
     {
         laString_ExtractFromTable(dst, src->table_index);
@@ -540,7 +573,10 @@ laResult laString_Append(laString* dst, const laString* src)
             dst->data = laContext_GetActive()->memIntf.heap.realloc(dst->data, dst->capacity * sizeof(GFXU_CHAR));
                  
             if(dst->data == NULL)
+            {
+                unlock();
                 return LA_FAILURE;
+            }
                               
             GFXU_ExtractString(laContext_GetActive()->stringTable,
                                src->table_index,
@@ -559,12 +595,16 @@ laResult laString_Append(laString* dst, const laString* src)
             dst->data = laContext_GetActive()->memIntf.heap.realloc(dst->data, dst->capacity * sizeof(GFXU_CHAR));
             
             if(dst->data == NULL)
+            {
+                unlock();
                 return LA_FAILURE;
+            }
             
             dst->data = la_strcat(dst->data, src->data);
         }
     }
     
+    unlock();
     return LA_SUCCESS;
 }
 
@@ -600,6 +640,8 @@ laResult laString_Insert(laString* dst, const laString* src, uint32_t idx)
         return LA_FAILURE;
     
     // copy data
+    lock();
+    
     for(i = dst->length - 1; i >= idx; i--)
         dst->data[i + rightLength] = dst->data[i];
     
@@ -609,6 +651,8 @@ laResult laString_Insert(laString* dst, const laString* src, uint32_t idx)
     dst->length = totalLength;
     
     dst->data[dst->length] = 0;
+    
+    unlock();
     
     return LA_SUCCESS;
 }
@@ -620,6 +664,8 @@ uint32_t laString_Remove(laString* str, uint32_t idx, uint32_t count)
     if(str == NULL || idx >= str->length)
         return 0;
         
+    lock();
+    
     if(count > str->length - idx)
         count = str->length - idx;
         
@@ -627,6 +673,8 @@ uint32_t laString_Remove(laString* str, uint32_t idx, uint32_t count)
         str->data[i] = str->data[i + count];
     
     str->length -= count;
+    
+    unlock();
     
     return count;
 }
@@ -636,6 +684,8 @@ void laString_Clear(laString* str)
     if(str == NULL)
         return;
     
+    lock();
+    
     str->table_index = LA_STRING_NULLIDX;
     
     if(str->capacity > 0)
@@ -643,6 +693,8 @@ void laString_Clear(laString* str)
         str->length = 0;
         str->data[0] = '\0';
     }
+    
+    unlock();
 }
 
 uint32_t laString_ToCharBuffer(const laString* str,
