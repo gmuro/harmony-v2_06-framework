@@ -27,16 +27,14 @@ void _laLabelWidget_GetTextRect(laLabelWidget* lbl,
                                 GFX_Rect* textRect,
 								GFX_Rect* drawRect)
 {
-    GFX_Rect bounds;
-    
-    bounds = laUtils_WidgetLocalRect((laWidget*)lbl);
+    *drawRect = laUtils_WidgetLocalRect((laWidget*)lbl);
     
     laString_GetMultiLineRect(&lbl->text, textRect);
     
     // arrange relative to image rect
     laUtils_ArrangeRectangleRelative(textRect,
                                      GFX_Rect_Zero,
-                                     bounds,
+                                     *drawRect,
                                      lbl->halign,
                                      lbl->valign,
                                      0,
@@ -45,9 +43,9 @@ void _laLabelWidget_GetTextRect(laLabelWidget* lbl,
                                      lbl->widget.margin.right,
                                      lbl->widget.margin.bottom,
                                      0);
-
-    GFX_RectClip(textRect, &bounds, drawRect);
-
+    
+    GFX_RectClip(textRect, drawRect, textRect);
+    
 	// move the rects to layer space
 	laUtils_RectToLayerSpace((laWidget*)lbl, textRect);
     laUtils_RectToLayerSpace((laWidget*)lbl, drawRect);
