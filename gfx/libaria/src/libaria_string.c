@@ -3,6 +3,45 @@
 #include "gfx/libaria/inc/libaria_context.h"
 #include "gfx/utils/gfx_utils.h"
 
+static int32_t mustUnlock = 0;
+
+static void lock(void)
+{
+   bool ret;
+   laContext *pContext = laContext_GetActive();
+   TaskHandle_t holder;
+   
+   ret = OSAL_MUTEX_Lock(&pContext->event.eventLock, 0);
+   
+   if (ret || mustUnlock)
+   {
+      mustUnlock++;
+   }
+   else
+   {
+      holder = xSemaphoreGetMutexHolder(pContext->event.eventLock);
+      
+      if (xTaskGetCurrentTaskHandle() != holder)
+      {
+         OSAL_MUTEX_Lock(&pContext->event.eventLock, OSAL_WAIT_FOREVER);
+         mustUnlock++;
+      }
+   }   
+}
+
+static void unlock(void)
+{
+   if (mustUnlock)
+   {
+      mustUnlock--;
+      if (mustUnlock == 0)
+      {
+         laContext *pContext = laContext_GetActive();
+         OSAL_MUTEX_Unlock(&pContext->event.eventLock);
+      }
+   }
+}
+
 static uint32_t la_strlen(const GFXU_CHAR* str)
 {
     int length = 0;
@@ -237,6 +276,7 @@ void laString_Destroy(laString* str)
     if(laContext_GetActive() == NULL || str == NULL)
         return;
 
+    lock();
     if(str->data != NULL)
         laContext_GetActive()->memIntf.heap.free(str->data);
 
@@ -245,6 +285,7 @@ void laString_Destroy(laString* str)
     str->length = 0;
     str->font = NULL;
     str->table_index = LA_STRING_NULLIDX;
+    unlock();
 }
 
 laResult laString_Copy(laString* dst, const laString* src)
@@ -255,34 +296,41 @@ laResult laString_Copy(laString* dst, const laString* src)
     if(src == NULL || dst == NULL)
         return LA_FAILURE;
     
-    dst->length = src->length;
-    dst->capacity = 0;
+    lock();
+    
     dst->font = src->font;
     dst->table_index = src->table_index;
     
     // if source has no data but destination does, free destination data
     if(src->length == 0 && dst->data != NULL)
     {
+        dst->length = 0;
+        dst->capacity = 0;
         laContext_GetActive()->memIntf.heap.free(dst->data);
         dst->data = NULL;
-
+        unlock();
         return LA_SUCCESS;
     }
     
-    if(dst->length > 0)
+    if (dst->capacity < src->length)
     {
-        dst->capacity = dst->length + 6;
+        dst->capacity = src->length + 6;
         dst->data = laContext_GetActive()->memIntf.heap.realloc(dst->data, dst->capacity * sizeof(GFXU_CHAR));
-
+        
         if(dst->data == NULL)
         {
             laString_Initialize(dst);
-            
+            unlock();
             return LA_FAILURE;
         }
-
-        la_strcpy(dst->data, src->data);
     }
+    
+    dst->length = src->length;
+    
+    if (dst->length > 0)
+      la_strcpy(dst->data, src->data);
+    
+    unlock();
     
     return LA_SUCCESS;
 }
