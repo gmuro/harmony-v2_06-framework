@@ -103,7 +103,7 @@ laResult laLabelWidget_SetHAlignment(laLabelWidget* lbl,
     if(lbl->halign == align)
         return LA_SUCCESS;
 
-    invalidateTextRect(lbl);
+    //invalidateTextRect(lbl);
 
     lbl->halign = align;
 
@@ -129,7 +129,7 @@ laResult laLabelWidget_SetVAlignment(laLabelWidget* lbl,
     if(lbl->valign == align)
         return LA_SUCCESS;
 
-    invalidateTextRect(lbl);
+    //invalidateTextRect(lbl);
 
     lbl->valign = align;
 
@@ -154,7 +154,7 @@ laResult laLabelWidget_SetText(laLabelWidget* lbl, laString str)
     if(laString_Compare(&lbl->text, &str) == 0)
         return LA_SUCCESS;
         
-    invalidateTextRect(lbl);
+    //invalidateTextRect(lbl);
         
     laString_Copy(&lbl->text, &str);
     
