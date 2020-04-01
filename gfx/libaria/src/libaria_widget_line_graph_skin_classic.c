@@ -14,7 +14,7 @@
 #include "gfx/hal/inc/gfx_draw_rect.h"
 #include "gfx/hal/inc/gfx_util.h"
 
-#define MAX_TICK_LABEL_DIGITS 10
+#define MAX_TICK_LABEL_DIGITS 11
 #define MAX_TICK_LABEL_VALUE 999999999
 #define LABEL_OFFSET_MIN_PIX 5
 
@@ -35,6 +35,7 @@ static void drawString(laLineGraphWidget* graph);
 static void drawBorder(laLineGraphWidget* graph);
 static void waitString(laLineGraphWidget* btn);
 
+extern int32_t fixPointToStr(int32_t num, int8_t pd, char *str, char decimaChar);
 
 static void nextState(laLineGraphWidget* graph)
 {
@@ -106,7 +107,7 @@ static void getValueLabelMaxDrawRect(laLineGraphWidget* graph, GFX_Rect * rect)
             //Protect from overflow
             if (graph->minValue > -MAX_TICK_LABEL_VALUE)
             {
-                sprintf(strbuff, "%d", graph->minValue);
+                fixPointToStr(graph->minValue, graph->dp, strbuff, '.');
             }
             else
             {
@@ -123,7 +124,7 @@ static void getValueLabelMaxDrawRect(laLineGraphWidget* graph, GFX_Rect * rect)
         //Protect from overflow
         if (graph->maxValue < MAX_TICK_LABEL_VALUE) 
         {
-            sprintf(strbuff, "%d", graph->maxValue);
+            fixPointToStr(graph->maxValue, graph->dp, strbuff, '.');
         } else 
         {
             sprintf(strbuff, "---");
@@ -187,7 +188,7 @@ static void drawTickLabelWithValue(laLineGraphWidget* graph, GFX_Point tickPoint
     //Protect from overflow
     if (value < MAX_TICK_LABEL_VALUE)
     {
-        sprintf(strbuff, "%d", value);
+        fixPointToStr(value, graph->dp, strbuff, '.');
     }
     else
     {

@@ -137,6 +137,8 @@ typedef struct laLineGraphWidget_t
     laLineGraphTickPosition categAxisTicksPosition;
     laArray categories;
     
+    uint8_t dp;
+    
     GFXU_ExternalAssetReader* reader; // asset reader
 } laLineGraphWidget;
 
@@ -1303,6 +1305,8 @@ LIB_EXPORT laLineGraphTickPosition laLineGraphWidget_GetCategoryAxisTicksPositio
 
 */
 LIB_EXPORT laResult laLineGraphWidget_SetCategoryAxisTicksPosition(laLineGraphWidget* graph, laLineGraphTickPosition position);
+
+laResult laLineGraphWidget_SetDecimalPoint(laLineGraphWidget* graph, uint8_t dp);
 
 #endif // LA_LINE_GRAPH_WIDGET_ENABLED
 #endif /* LIBARIA_WIDGET_LINE_GRAPH_H */

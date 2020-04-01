@@ -58,6 +58,8 @@ void _laLineGraphWidget_Constructor(laLineGraphWidget* graph)
     
     laArray_Create(&graph->dataSeries);
     laArray_Create(&graph->categories);
+    
+    graph->dp = 0;
 }
 
 void _laLineGraphWidget_Destructor(laLineGraphWidget* graph)
@@ -499,7 +501,7 @@ laResult laLineGraphWidget_AddDataToSeries(laLineGraphWidget* graph, uint32_t se
     if (seriesID >= graph->dataSeries.size)
         return LA_FAILURE;
     
-    data = laContext_GetActive()->memIntf.heap.malloc(sizeof(data));
+    data = laContext_GetActive()->memIntf.heap.malloc(sizeof(int32_t));
     
     *data = value;
     
@@ -766,10 +768,10 @@ laResult laLineGraphWidget_DestroyAll(laLineGraphWidget* graph)
         laString_Destroy(&category->text);
     }
 
-    //Free the category array and contents
+    //Destroy the category array and contents
     laArray_Destroy(&graph->categories);
     
-    // Free category string data
+    // Destroy data on each serie
     for (i = 0; i < graph->dataSeries.size; i++)
     {
         series = laArray_Get(&graph->dataSeries, i);
@@ -777,11 +779,10 @@ laResult laLineGraphWidget_DestroyAll(laLineGraphWidget* graph)
         {
             //Destroy the data list and containers
             laArray_Destroy(&series->data);
-             //Destroy the pointer list
-            laArray_Destroy(&series->data);
         }
     }
     
+    //Destroy the dataSeries list and containers
     laArray_Destroy(&graph->dataSeries);
     
     laWidget_Invalidate((laWidget*)graph);
@@ -913,6 +914,20 @@ laResult laLineGraphWidget_SetCategoryAxisTicksPosition(laLineGraphWidget* graph
     return LA_SUCCESS;      
 }
 
+laResult laLineGraphWidget_SetDecimalPoint(laLineGraphWidget* graph, uint8_t dp)
+{
+    if(graph == NULL || dp > 8)
+        return LA_FAILURE;
+        
+    if(graph->dp == dp)
+        return LA_SUCCESS;
+        
+    graph->dp = dp;
+    
+    laWidget_Invalidate((laWidget*)graph);
+        
+    return LA_SUCCESS;      
+}
 
 
 
