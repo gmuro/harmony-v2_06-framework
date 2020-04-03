@@ -177,6 +177,8 @@ static void _laRadialMenuWidget_Constructor(laRadialMenuWidget* mn)
 static void _laRadialMenuWidget_Destructor(laRadialMenuWidget* mn)
 {
     laList_Destroy(&mn->widgetList);
+    laList_Clear(&mn->shownList);
+    laList_Clear(&mn->hiddenList);
 
     mn->highlighter = NULL;
     
