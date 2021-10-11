@@ -225,6 +225,10 @@ int32_t laContext_GetActiveScreenIndex()
 
 laResult laContext_SetActiveScreen(uint32_t idx)
 {
+   /* llamada a funcion prohibida, se sale porque el libaria_initialize llama a esta funcion siempre 
+    * para manetener compatibilidad se agrego return LA_SUCCESS; */
+   return LA_SUCCESS;
+   
     laContext_ScreenChangeEvent* evt;
     
     if(_activeContext == NULL || idx < 0 || idx >= _activeContext->screenList.size)
