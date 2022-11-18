@@ -1744,6 +1744,10 @@ void _DRV_USART_ByteReceiveTasks (SYS_MODULE_OBJ object)
         {
             hDriver->receiveCallback (object);
         }
+        else
+        {
+           PLIB_USART_ReceiverByteReceive(hDriver->moduleId);
+        }
     }
 }
 
